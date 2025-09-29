@@ -11,8 +11,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL, // Your frontend URL
-    credentials: true, // Allow cookies to be sent cross-origin
+    origin: process.env.FRONTEND_URL, 
+    credentials: true, 
   })
 );
 app.use(express.json());
@@ -40,9 +40,9 @@ app.get("/auth/login", (req, res) => {
   res.cookie("oauth_state", state, {
     signed: true,
     httpOnly: true,
-    maxAge: 10 * 60 * 1000, // 10 minutes
-    sameSite: "lax", // Enable OAuth cookie during cross-site redirects
-    // secure: false, // false for HTTP in dev
+    maxAge: 10 * 60 * 1000, 
+    sameSite: "lax",
+    // secure: false, 
   });
 
   const params = querystring.stringify({
@@ -50,7 +50,8 @@ app.get("/auth/login", (req, res) => {
     response_type: "code",
     redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
     state: state,
-    scope: "playlist-read-private user-read-private",
+    scope:
+      " playlist-modify-public",
   });
 
   res.redirect(`https://accounts.spotify.com/authorize?${params}`);

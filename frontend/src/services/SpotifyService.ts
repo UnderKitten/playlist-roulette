@@ -70,6 +70,43 @@ class SpotifyService {
     return data.items.map((item: any) => item.track);
   }
 
+  async replacePlaylistTracks(
+    playlistId: string,
+    trackUris: string[]
+  ): Promise<void> {
+    const response = await fetch(
+      `${SPOTIFY_BASE_URL}/playlists/${playlistId}/tracks`,
+      {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({
+          uris: trackUris,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to update playlist: ${response.statusText}`);
+    }
+  }
+
+  async shuffleAndApplyPlaylist(
+    playlistId: string,
+    tracks: SpotifyTrack[]
+  ): Promise<SpotifyTrack[]> {
+    const shuffledTracks = this.shuffleArray(tracks);
+
+    const trackUris = this.getTrackUris(shuffledTracks);
+
+    await this.replacePlaylistTracks(playlistId, trackUris);
+
+    return shuffledTracks;
+  }
+
+  getTrackUris(tracks: SpotifyTrack[]): string[] {
+    return tracks.map((track) => `spotify:track:${track.id}`);
+  }
+
   isAuthenticated(): boolean {
     const token = localStorage.getItem("spotify_access_token");
     const expiresAt = localStorage.getItem("spotify_expires_at");
