@@ -14,7 +14,7 @@ const Dashboard = () => {
   const [shuffledTracks, setShuffledTracks] = useState<SpotifyTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isShuffling, setIsShuffling] = useState(false); 
+  const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleSuccess, setShuffleSuccess] = useState(false);
 
   useEffect(() => {
@@ -46,6 +46,8 @@ const Dashboard = () => {
   };
 
   const handlePlaylistSelect = async (playlist: SpotifyPlaylist) => {
+    if (isShuffling) return;
+
     try {
       setLoading(true);
       setSelectedPlaylist(playlist);
@@ -83,15 +85,18 @@ const Dashboard = () => {
       setTimeout(() => {
         setShuffleSuccess(false);
       }, 3000);
-
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to shuffle playlist");
+      setError(
+        err instanceof Error ? err.message : "Failed to shuffle playlist"
+      );
     } finally {
       setIsShuffling(false);
     }
   };
 
   const handleLogout = () => {
+    if (isShuffling) return;
+
     localStorage.removeItem("spotify_access_token");
     localStorage.removeItem("spotify_expires_at");
     window.location.href = "/";
@@ -115,7 +120,7 @@ const Dashboard = () => {
         <div className="text-center p-8 bg-red-900/30 backdrop-blur-sm rounded-xl border border-red-500/20 max-w-md">
           <h2 className="text-2xl font-bold text-red-400 mb-4">Error</h2>
           <p className="text-red-200 mb-6">{error}</p>
-          <button 
+          <button
             onClick={() => (window.location.href = "/")}
             className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
           >
@@ -127,7 +132,28 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white relative">
+      {/* Shuffle Loading Overlay */}
+      {isShuffling && (
+        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl p-10 border border-green-500/30 shadow-2xl text-center space-y-6 max-w-md">
+            <div className="animate-spin w-16 h-16 border-4 border-green-400 border-t-transparent rounded-full mx-auto"></div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold text-green-400">
+                Shuffling Playlist
+              </h2>
+              <p className="text-gray-300 text-lg">
+                Applying your shuffled tracks to Spotify...
+              </p>
+              <p className="text-gray-400 text-sm">This may take a moment</p>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+              <div className="bg-gradient-to-r from-green-600 to-green-400 h-full rounded-full animate-pulse w-full"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="container mx-auto px-6 py-8 max-w-7xl">
         {/* Header */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700/30 shadow-2xl">
@@ -137,13 +163,22 @@ const Dashboard = () => {
             </h1>
             {user && (
               <p className="text-gray-300 text-lg">
-                Welcome back, <span className="text-green-400 font-semibold">{user.display_name}</span>!
+                Welcome back,{" "}
+                <span className="text-green-400 font-semibold">
+                  {user.display_name}
+                </span>
+                !
               </p>
             )}
           </div>
           <button
             onClick={handleLogout}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+            disabled={isShuffling}
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 shadow-lg ${
+              isShuffling
+                ? "bg-gray-700 text-gray-400 cursor-not-allowed opacity-50"
+                : "bg-red-600 hover:bg-red-700 text-white hover:shadow-xl hover:scale-105"
+            }`}
           >
             Logout
           </button>
@@ -154,21 +189,34 @@ const Dashboard = () => {
           <div className="space-y-6">
             <div className="bg-gray-800/60 backdrop-blur-sm rounded-xl p-8 border border-gray-700/30 shadow-xl">
               <h2 className="text-2xl font-bold mb-6 text-gray-100">
-                Your Playlists 
-                <span className="text-green-400 text-lg ml-2">({playlists.length})</span>
+                Your Playlists
+                <span className="text-green-400 text-lg ml-2">
+                  ({playlists.length})
+                </span>
               </h2>
               <div className="max-h-[600px] overflow-y-auto space-y-3 scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-green-600">
                 {playlists.map((playlist) => (
                   <div
                     key={playlist.id}
-                    onClick={() => handlePlaylistSelect(playlist)}
-                    className={`p-2 cursor-pointer rounded-lg transition-all duration-200 hover:scale-[1.02] ${
+                    onClick={() =>
+                      !isShuffling && handlePlaylistSelect(playlist)
+                    }
+                    className={`p-2 rounded-lg transition-all duration-200 ${
+                      isShuffling
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer hover:scale-[1.02]"
+                    } ${
                       selectedPlaylist?.id === playlist.id
                         ? "bg-gradient-to-r from-green-600 to-green-500 text-white shadow-lg shadow-green-600/25"
                         : "bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600/30"
                     }`}
                   >
-                    <div className="font-semibold text-md">{playlist.name}</div>
+                    <div
+                      className="font-semibold text-md truncate"
+                      title={playlist.name}
+                    >
+                      {playlist.name}
+                    </div>
                     <div className="text-sm opacity-75 flex items-center justify-center">
                       {playlist.tracks.total} tracks
                     </div>
@@ -184,25 +232,30 @@ const Dashboard = () => {
               <>
                 {/* Playlist Header */}
                 <div className="bg-gray-800/60 backdrop-blur-sm rounded-xl p-6 border border-gray-700/30 shadow-xl">
-                  <h2 className="text-2xl font-bold mb-2 text-white">{selectedPlaylist.name}</h2>
-                  
+                  <h2
+                    className="text-2xl font-bold mb-2 text-white truncate"
+                    title={selectedPlaylist.name}
+                  >
+                    {selectedPlaylist.name}
+                  </h2>
+
                   <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                     <span className="text-gray-400 flex items-center gap-2">
                       <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                       {tracks.length} tracks loaded
                     </span>
-                    
+
                     <div className="flex items-center gap-4">
                       <button
                         onClick={handleShuffleAndApply}
                         disabled={tracks.length === 0 || isShuffling}
                         className={`px-6 py-3 rounded-lg font-medium flex items-center gap-3 transition-all duration-200 shadow-lg ${
-                          tracks.length > 0 && !isShuffling 
-                            ? "bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white cursor-pointer hover:scale-105 hover:shadow-xl hover:shadow-green-600/25" 
+                          tracks.length > 0 && !isShuffling
+                            ? "bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white cursor-pointer hover:scale-105 hover:shadow-xl hover:shadow-green-600/25"
                             : "bg-gray-700 text-gray-400 cursor-not-allowed opacity-50"
                         }`}
                       >
-                       {isShuffling ? (
+                        {isShuffling ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                             Shuffling...
@@ -241,27 +294,39 @@ const Dashboard = () => {
                           }`}
                         >
                           <span
-                            className={`min-w-[40px] text-center font-bold text-lg ${
-                              shuffledTracks.length > 0 ? "text-green-400" : "text-gray-500"
+                            className={`min-w-[40px] text-center font-bold text-lg flex-shrink-0 ${
+                              shuffledTracks.length > 0
+                                ? "text-green-400"
+                                : "text-gray-500"
                             }`}
                           >
                             {index + 1}
                           </span>
-                          
+
                           {track.album.images[0] && (
                             <img
                               src={track.album.images[0].url}
                               alt={track.album.name}
-                              className="w-10 h-10 rounded-lg ml-4 shadow-md"
+                              className="w-10 h-10 rounded-lg ml-4 shadow-md flex-shrink-0"
                             />
                           )}
-                          
+
                           <div className="flex-1 ml-4 min-w-0">
-                            <div className="text-white font-semibold truncate text-lg">
+                            <div
+                              className="text-white font-semibold truncate text-lg"
+                              title={track.name}
+                            >
                               {track.name}
                             </div>
-                            <div className="text-gray-400 truncate">
-                              {track.artists.map((artist) => artist.name).join(", ")}
+                            <div
+                              className="text-gray-400 truncate"
+                              title={track.artists
+                                .map((artist) => artist.name)
+                                .join(", ")}
+                            >
+                              {track.artists
+                                .map((artist) => artist.name)
+                                .join(", ")}
                             </div>
                           </div>
                         </div>
@@ -274,8 +339,12 @@ const Dashboard = () => {
               <div className="bg-gray-800/60 backdrop-blur-sm rounded-xl p-12 border border-gray-700/30 shadow-xl text-center">
                 <div className="space-y-4">
                   <div className="text-6xl mb-4">🎵</div>
-                  <h2 className="text-2xl font-bold text-gray-200">Select a Playlist</h2>
-                  <p className="text-gray-400 text-lg">Choose a playlist from the sidebar to start shuffling!</p>
+                  <h2 className="text-2xl font-bold text-gray-200">
+                    Select a Playlist
+                  </h2>
+                  <p className="text-gray-400 text-lg">
+                    Choose a playlist from the sidebar to start shuffling!
+                  </p>
                 </div>
               </div>
             )}
