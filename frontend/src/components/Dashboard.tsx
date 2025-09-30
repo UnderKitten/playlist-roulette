@@ -231,12 +231,12 @@ const Dashboard = () => {
 
                 {/* Track List */}
                 <div className="bg-gray-800/60 backdrop-blur-sm rounded-xl border border-gray-700/30 shadow-xl overflow-hidden">
-                  <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-green-600">
+                  <div className="max-h-[560px] overflow-y-auto scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-green-600">
                     {(shuffledTracks.length > 0 ? shuffledTracks : tracks).map(
                       (track, index) => (
                         <div
                           key={`${track.id}-${index}`}
-                          className={`flex items-center p-4 hover:bg-gray-700/30 transition-colors duration-200 border-b border-gray-700/20 last:border-b-0 ${
+                          className={`flex items-center p-1 hover:bg-gray-700/30 transition-colors duration-200 border-b border-gray-700/20 last:border-b-0 ${
                             shuffledTracks.length > 0 ? "bg-green-900/10" : ""
                           }`}
                         >
@@ -252,11 +252,11 @@ const Dashboard = () => {
                             <img
                               src={track.album.images[0].url}
                               alt={track.album.name}
-                              className="w-12 h-12 rounded-lg ml-4 shadow-md"
+                              className="w-10 h-10 rounded-lg ml-4 shadow-md"
                             />
                           )}
                           
-                          <div className="flex-1 ml-4 min-w-5">
+                          <div className="flex-1 ml-4 min-w-0">
                             <div className="text-white font-semibold truncate text-lg">
                               {track.name}
                             </div>
