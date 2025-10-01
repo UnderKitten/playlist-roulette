@@ -7,6 +7,7 @@ import {
 import LoadingSpinner from "./LoadingSpinner";
 import ErrorDisplay from "./ErrorDisplay";
 import ShuffleLoadingOverlay from "./ShuffleLoading";
+import TrackLoadingOverlay from "./TrackLoadingOverlay";
 import DashboardHeader from "./DashboardHeader";
 import PlaylistSidebar from "./PlaylistSidebar";
 import PlaylistHeader from "./PlaylistHeader";
@@ -21,6 +22,7 @@ const Dashboard = () => {
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [shuffledTracks, setShuffledTracks] = useState<SpotifyTrack[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingTracks, setLoadingTracks] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleSuccess, setShuffleSuccess] = useState(false);
@@ -57,25 +59,26 @@ const Dashboard = () => {
 
 
   const handlePlaylistSelect = async (playlist: SpotifyPlaylist) => {
-    if (isShuffling) return;
+    if (isShuffling || loadingTracks) return;
 
     try {
-      setLoading(true);
+      setLoadingTracks(true);
       setSelectedPlaylist(playlist);
+      setTracks([]);
+      setShuffledTracks([]);
 
       const playlistTracks = await spotifyService.getPlaylistTracks(playlist.id);
       setTracks(playlistTracks);
-      setShuffledTracks([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load playlist tracks");
     } finally {
-      setLoading(false);
+      setLoadingTracks(false);
     }
   };
 
 
   const handleShuffleAndApply = async () => {
-    if (!selectedPlaylist || tracks.length === 0) return;
+    if (!selectedPlaylist || tracks.length === 0 || loadingTracks) return;
 
     try {
       setIsShuffling(true);
@@ -102,7 +105,7 @@ const Dashboard = () => {
 
 
   const handleLogout = () => {
-    if (isShuffling) return;
+    if (isShuffling || loadingTracks) return;
 
     localStorage.removeItem("spotify_access_token");
     localStorage.removeItem("spotify_expires_at");
@@ -115,7 +118,7 @@ const Dashboard = () => {
   }
 
 
-  if (error) {
+  if (error && !user) {
     return <ErrorDisplay error={error} />;
   }
 
@@ -131,7 +134,7 @@ const Dashboard = () => {
         <DashboardHeader
           userName={user?.display_name}
           onLogout={handleLogout}
-          isDisabled={isShuffling}
+          isDisabled={isShuffling || loadingTracks}
         />
 
         <div className="grid grid-cols-1 xl:grid-cols-[500px_1fr] gap-8">
@@ -139,7 +142,7 @@ const Dashboard = () => {
             playlists={playlists}
             selectedPlaylistId={selectedPlaylist?.id}
             onPlaylistSelect={handlePlaylistSelect}
-            isDisabled={isShuffling}
+            isDisabled={isShuffling || loadingTracks}
           />
 
           <div className="space-y-6">
@@ -150,10 +153,15 @@ const Dashboard = () => {
                   trackCount={tracks.length}
                   onShuffle={handleShuffleAndApply}
                   isShuffling={isShuffling}
+                  isLoadingTracks={loadingTracks}
                   shuffleSuccess={shuffleSuccess}
                   error={error}
                 />
-                <TrackList tracks={displayTracks} isShuffled={shuffledTracks.length > 0} />
+                {loadingTracks ? (
+                  <TrackLoadingOverlay isVisible={true} />
+                ) : (
+                  <TrackList tracks={displayTracks} isShuffled={shuffledTracks.length > 0} />
+                )}
               </>
             ) : (
               <EmptyPlaylistState />

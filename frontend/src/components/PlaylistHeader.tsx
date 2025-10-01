@@ -3,6 +3,7 @@ interface PlaylistHeaderProps {
   trackCount: number;
   onShuffle: () => void;
   isShuffling: boolean;
+  isLoadingTracks: boolean;
   shuffleSuccess: boolean;
   error?: string | null;
 }
@@ -12,6 +13,7 @@ const PlaylistHeader = ({
   trackCount,
   onShuffle,
   isShuffling,
+  isLoadingTracks,
   shuffleSuccess,
   error,
 }: PlaylistHeaderProps) => {
@@ -24,15 +26,15 @@ const PlaylistHeader = ({
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <span className="text-gray-400 flex items-center gap-2">
           <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-          {trackCount} tracks loaded
+          {isLoadingTracks ? "Loading tracks..." : `${trackCount} tracks loaded`}
         </span>
 
         <div className="flex items-center gap-4">
           <button
             onClick={onShuffle}
-            disabled={trackCount === 0 || isShuffling}
+            disabled={trackCount === 0 || isShuffling || isLoadingTracks}
             className={`px-6 py-3 rounded-lg font-medium flex items-center gap-3 transition-all duration-200 shadow-lg ${
-              trackCount > 0 && !isShuffling
+              trackCount > 0 && !isShuffling && !isLoadingTracks
                 ? "bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white cursor-pointer hover:scale-105 hover:shadow-xl hover:shadow-green-600/25"
                 : "bg-gray-700 text-gray-400 cursor-not-allowed opacity-50"
             }`}
