@@ -9,16 +9,27 @@ import { SpotifyTokenResponse } from "./types/spotify";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const requiredEnvVars = [
+  "SPOTIFY_CLIENT_ID",
+  "SPOTIFY_CLIENT_SECRET",
+  "FRONTEND_URL",
+];
+requiredEnvVars.forEach((envVar) => {
+  if (!process.env[envVar]) {
+    console.error(`Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+});
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL, 
-    credentials: true, 
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
   })
 );
 app.use(express.json());
-app.use(cookieParser("your-secret-signing-key"));
+app.use(cookieParser(process.env.COOKIE_SECRET));
 
-// Temporary in-memory session storage
 const userSessions = new Map();
 
 const cleanupInterval = setInterval(() => {
@@ -40,9 +51,9 @@ app.get("/auth/login", (req, res) => {
   res.cookie("oauth_state", state, {
     signed: true,
     httpOnly: true,
-    maxAge: 10 * 60 * 1000, 
+    maxAge: 10 * 60 * 1000,
     sameSite: "lax",
-    // secure: false, 
+    // secure: false,
   });
 
   const params = querystring.stringify({
@@ -50,8 +61,7 @@ app.get("/auth/login", (req, res) => {
     response_type: "code",
     redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
     state: state,
-    scope:
-      " playlist-modify-public",
+    scope: " playlist-modify-public",
   });
 
   res.redirect(`https://accounts.spotify.com/authorize?${params}`);
@@ -72,24 +82,29 @@ app.get("/auth/callback", async (req, res) => {
   }
 
   try {
-    const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${Buffer.from(
-          `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
-        ).toString("base64")}`,
-      },
-      body: querystring.stringify({
-        grant_type: "authorization_code",
-        code: code,
-        redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
-      }),
-    });
+    const tokenResponse = await fetch(
+      "https://accounts.spotify.com/api/token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${Buffer.from(
+            `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+          ).toString("base64")}`,
+        },
+        body: querystring.stringify({
+          grant_type: "authorization_code",
+          code: code,
+          redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
+        }),
+      }
+    );
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      return res.redirect(`${process.env.FRONTEND_URL}/callback?error=token_failed`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/callback?error=token_failed`
+      );
     }
 
     const tokenData = (await tokenResponse.json()) as SpotifyTokenResponse;
@@ -101,12 +116,19 @@ app.get("/auth/callback", async (req, res) => {
         refresh_token: tokenData.refresh_token,
         expires_at: Date.now() + tokenData.expires_in * 1000,
       });
-      return res.redirect(`${process.env.FRONTEND_URL}/callback?success=true&session=${sessionId}`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/callback?success=true&session=${sessionId}`
+      );
     } else {
-      return res.redirect(`${process.env.FRONTEND_URL}/callback?error=no_token`);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/callback?error=no_token`
+      );
     }
-  } catch {
-    return res.redirect(`${process.env.FRONTEND_URL}/callback?error=auth_failed`);
+  } catch (error) {
+    console.error("Auth failed:", error);
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/callback?error=auth_failed`
+    );
   }
 });
 

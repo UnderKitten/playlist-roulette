@@ -1,4 +1,4 @@
-const SPOTIFY_BASE_URL = "https://api.spotify.com/v1";
+const SPOTIFY_BASE_URL = import.meta.env.VITE_SPOTIFY_BASE_URL;
 
 export interface SpotifyPlaylist {
   id: string;
@@ -42,7 +42,7 @@ class SpotifyService {
   }
 
   async getUserPlaylists(): Promise<SpotifyPlaylist[]> {
-    const response = await fetch(`${SPOTIFY_BASE_URL}/me/playlists?limit=50`, {
+    const response = await fetch(`${SPOTIFY_BASE_URL}/me/playlists`, {
       headers: this.getAuthHeaders(),
     });
 
@@ -55,32 +55,47 @@ class SpotifyService {
   }
 
   async getPlaylistTracks(playlistId: string): Promise<SpotifyTrack[]> {
-    const response = await fetch(
-      `${SPOTIFY_BASE_URL}/playlists/${playlistId}/tracks`,
-      {
-        headers: this.getAuthHeaders(),
-      }
-    );
+    const allTracks: SpotifyTrack[] = [];
+    let url = `${SPOTIFY_BASE_URL}/playlists/${playlistId}/tracks?limit=100`;
 
-    if (!response.ok) {
-      throw new Error(`Error fetching playlist tracks: ${response.statusText}`);
+    while (url) {
+      const response = await fetch(url, {
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Error fetching playlist tracks: ${response.statusText}`
+        );
+      }
+
+      const data = await response.json();
+      const tracks = data.items.map((item: any) => item.track);
+      allTracks.push(...tracks);
+
+      url = data.next;
     }
 
-    const data = await response.json();
-    return data.items.map((item: any) => item.track);
+    return allTracks;
   }
 
   async replacePlaylistTracks(
     playlistId: string,
-    trackUris: string[]
+    trackUris: string[],
+    onProgress?: (current: number, total: number) => void
   ): Promise<void> {
+    const totalBatches = Math.ceil(trackUris.length / 100);
+    let currentBatch = 0;
+
+    const firstBatch = trackUris.slice(0, 100);
+
     const response = await fetch(
       `${SPOTIFY_BASE_URL}/playlists/${playlistId}/tracks`,
       {
         method: "PUT",
         headers: this.getAuthHeaders(),
         body: JSON.stringify({
-          uris: trackUris,
+          uris: firstBatch,
         }),
       }
     );
@@ -88,17 +103,51 @@ class SpotifyService {
     if (!response.ok) {
       throw new Error(`Failed to update playlist: ${response.statusText}`);
     }
+
+    currentBatch++;
+    if (onProgress) {
+      onProgress(currentBatch, totalBatches);
+    }
+
+    if (trackUris.length > 100) {
+      for (let i = 100; i < trackUris.length; i += 100) {
+        const batch = trackUris.slice(i, i + 100);
+
+        const addResponse = await fetch(
+          `${SPOTIFY_BASE_URL}/playlists/${playlistId}/tracks`,
+          {
+            method: "POST",
+            headers: this.getAuthHeaders(),
+            body: JSON.stringify({
+              uris: batch,
+            }),
+          }
+        );
+
+        if (!addResponse.ok) {
+          throw new Error(
+            `Failed to add tracks to playlist: ${addResponse.statusText}`
+          );
+        }
+
+        currentBatch++;
+        if (onProgress) {
+          onProgress(currentBatch, totalBatches);
+        }
+      }
+    }
   }
 
   async shuffleAndApplyPlaylist(
     playlistId: string,
-    tracks: SpotifyTrack[]
+    tracks: SpotifyTrack[],
+    onProgress?: (current: number, total: number) => void
   ): Promise<SpotifyTrack[]> {
     const shuffledTracks = this.shuffleArray(tracks);
 
     const trackUris = this.getTrackUris(shuffledTracks);
 
-    await this.replacePlaylistTracks(playlistId, trackUris);
+    await this.replacePlaylistTracks(playlistId, trackUris, onProgress);
 
     return shuffledTracks;
   }

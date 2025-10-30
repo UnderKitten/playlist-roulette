@@ -1,20 +1,8 @@
-import { useState, useEffect } from "react";
-import { spotifyService } from "../services/SpotifyService";
 import Dashboard from "./Dashboard";
+import { useSpotifyAuth } from "../hooks/useSpotifyAuth";
 
 function HomePage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const authenticated = spotifyService.isAuthenticated();
-    setIsAuthenticated(authenticated);
-    setLoading(false);
-  }, []);
-
-  const handleSpotifyLogin = () => {
-    window.location.href = "http://127.0.0.1:5000/auth/login";
-  };
+  const { isAuthenticated, loading, login } = useSpotifyAuth();
 
   if (loading) {
     return (
@@ -49,7 +37,7 @@ function HomePage() {
 
         {/* Login Button */}
         <button
-          onClick={handleSpotifyLogin}
+          onClick={login}
           className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white py-4 px-8 text-lg font-bold rounded-2xl cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl hover:shadow-green-600/25 hover:scale-105 flex items-center justify-center gap-3"
         >
           <span className="text-2xl">🎵</span>
