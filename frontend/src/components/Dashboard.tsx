@@ -13,6 +13,7 @@ import PlaylistSidebar from "./PlaylistSidebar";
 import PlaylistHeader from "./PlaylistHeader";
 import TrackList from "./TrackList";
 import EmptyPlaylistState from "./EmptyPlaylistState";
+import { useSpotifyAuth } from "../hooks/useSpotifyAuth";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -26,6 +27,7 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleSuccess, setShuffleSuccess] = useState(false);
+  const { logout } = useSpotifyAuth();
 
   useEffect(() => {
     loadUserData();
@@ -108,9 +110,7 @@ const Dashboard = () => {
   const handleLogout = () => {
     if (isShuffling || loadingTracks) return;
 
-    localStorage.removeItem("spotify_access_token");
-    localStorage.removeItem("spotify_expires_at");
-    window.location.href = "/";
+    logout();
   };
 
   if (loading && !user) {
