@@ -13,7 +13,7 @@ function HomePage() {
   }, []);
 
   const handleSpotifyLogin = () => {
-    window.location.href = "http://127.0.0.1:5000/auth/login";
+    window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth/login`;
   };
 
   if (loading) {

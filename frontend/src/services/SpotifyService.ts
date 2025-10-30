@@ -1,4 +1,4 @@
-const SPOTIFY_BASE_URL = "https://api.spotify.com/v1";
+const SPOTIFY_BASE_URL = import.meta.env.VITE_SPOTIFY_BASE_URL;
 
 export interface SpotifyPlaylist {
   id: string;
