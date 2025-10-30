@@ -14,6 +14,7 @@ import PlaylistHeader from "./PlaylistHeader";
 import TrackList from "./TrackList";
 import EmptyPlaylistState from "./EmptyPlaylistState";
 import { useSpotifyAuth } from "../hooks/useSpotifyAuth";
+import DisclaimerPopup from "./DisclaimerPopup";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -28,6 +29,14 @@ const Dashboard = () => {
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleSuccess, setShuffleSuccess] = useState(false);
   const { logout } = useSpotifyAuth();
+  const [showDisclaimer, setShowDisclaimer] = useState(() => {
+    return !localStorage.getItem('playlist_roulette_disclaimer_accepted');
+  });
+
+  const handleAcceptDisclaimer = () => {
+    localStorage.setItem('playlist_roulette_disclaimer_accepted', 'true');
+    setShowDisclaimer(false);
+  };
 
   useEffect(() => {
     loadUserData();
@@ -109,7 +118,7 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     if (isShuffling || loadingTracks) return;
-
+    
     logout();
   };
 
@@ -131,6 +140,10 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white relative">
       <ShuffleLoadingOverlay isVisible={isShuffling} />
+      <DisclaimerPopup 
+        isOpen={showDisclaimer} 
+        onAccept={handleAcceptDisclaimer} 
+      />
 
       <div className="container mx-auto px-6 py-8 max-w-7xl">
         <DashboardHeader

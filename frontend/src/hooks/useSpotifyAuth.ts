@@ -16,8 +16,9 @@ export const useSpotifyAuth = () => {
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('spotify-access-token');
-    localStorage.removeItem('spotify-expires-at');
+    localStorage.removeItem('spotify_access_token');
+    localStorage.removeItem('spotify_expires_at');
+    localStorage.removeItem('playlist_roulette_disclaimer_accepted');
     setIsAuthenticated(false);
     window.location.href = '/';
   }, []);
