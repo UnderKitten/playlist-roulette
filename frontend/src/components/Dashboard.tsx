@@ -14,11 +14,11 @@ import PlaylistHeader from "./PlaylistHeader";
 import TrackList from "./TrackList";
 import EmptyPlaylistState from "./EmptyPlaylistState";
 
-
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<SpotifyPlaylist | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] =
+    useState<SpotifyPlaylist | null>(null);
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [shuffledTracks, setShuffledTracks] = useState<SpotifyTrack[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,11 +27,9 @@ const Dashboard = () => {
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleSuccess, setShuffleSuccess] = useState(false);
 
-
   useEffect(() => {
     loadUserData();
   }, []);
-
 
   const loadUserData = async () => {
     try {
@@ -57,7 +55,6 @@ const Dashboard = () => {
     }
   };
 
-
   const handlePlaylistSelect = async (playlist: SpotifyPlaylist) => {
     if (isShuffling || loadingTracks) return;
 
@@ -67,15 +64,18 @@ const Dashboard = () => {
       setTracks([]);
       setShuffledTracks([]);
 
-      const playlistTracks = await spotifyService.getPlaylistTracks(playlist.id);
+      const playlistTracks = await spotifyService.getPlaylistTracks(
+        playlist.id
+      );
       setTracks(playlistTracks);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load playlist tracks");
+      setError(
+        err instanceof Error ? err.message : "Failed to load playlist tracks"
+      );
     } finally {
       setLoadingTracks(false);
     }
   };
-
 
   const handleShuffleAndApply = async () => {
     if (!selectedPlaylist || tracks.length === 0 || loadingTracks) return;
@@ -97,12 +97,13 @@ const Dashboard = () => {
         setShuffleSuccess(false);
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to shuffle playlist");
+      setError(
+        err instanceof Error ? err.message : "Failed to shuffle playlist"
+      );
     } finally {
       setIsShuffling(false);
     }
   };
-
 
   const handleLogout = () => {
     if (isShuffling || loadingTracks) return;
@@ -112,19 +113,20 @@ const Dashboard = () => {
     window.location.href = "/";
   };
 
-
   if (loading && !user) {
-    return <LoadingSpinner message="Loading..." subMessage="Getting your Spotify data..." />;
+    return (
+      <LoadingSpinner
+        message="Loading..."
+        subMessage="Getting your Spotify data..."
+      />
+    );
   }
-
 
   if (error && !user) {
     return <ErrorDisplay error={error} />;
   }
 
-
   const displayTracks = shuffledTracks.length > 0 ? shuffledTracks : tracks;
-
 
   return (
     <div className="min-h-screen bg-gray-900 text-white relative">
@@ -160,7 +162,10 @@ const Dashboard = () => {
                 {loadingTracks ? (
                   <TrackLoadingOverlay isVisible={true} />
                 ) : (
-                  <TrackList tracks={displayTracks} isShuffled={shuffledTracks.length > 0} />
+                  <TrackList
+                    tracks={displayTracks}
+                    isShuffled={shuffledTracks.length > 0}
+                  />
                 )}
               </>
             ) : (
@@ -172,6 +177,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
 
 export default Dashboard;
