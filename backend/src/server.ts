@@ -61,7 +61,7 @@ app.get("/auth/login", (req, res) => {
     response_type: "code",
     redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
     state: state,
-    scope: " playlist-modify-public",
+    scope: 'playlist-modify-public playlist-modify-private playlist-read-private'
   });
 
   res.redirect(`https://accounts.spotify.com/authorize?${params}`);

@@ -6,7 +6,7 @@ function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-4">
           <div className="animate-spin w-12 h-12 border-4 border-green-400 border-t-transparent rounded-full mx-auto"></div>
           <h2 className="text-2xl font-bold text-white">Loading...</h2>
@@ -21,7 +21,7 @@ function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6">     
+     <div className="flex flex-col items-center justify-center flex-1 p-6">     
 
       {/* Main Content Card */}
       <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl p-10 border border-gray-700/30 shadow-2xl max-w-md w-full text-center space-y-8">
