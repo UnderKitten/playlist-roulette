@@ -163,6 +163,34 @@ class SpotifyService {
     }
   }
 
+  private async moveTrack(
+    playlistId: string,
+    from: number,
+    to: number,
+    snapshotId?: string
+  ): Promise<string> {
+    const response = await this.fetchWithRetry(
+      `${SPOTIFY_BASE_URL}/playlists/${playlistId}/tracks`,
+      {
+        method: "PUT",
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({
+          range_start: from,
+          insert_before: to,
+          range_length: 1,
+          snapshot_id: snapshotId,
+        }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error(`Failed to move track: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.snapshot_id;
+  }
+  
+
   async shuffleAndApplyPlaylist(
     playlistId: string,
     tracks: SpotifyTrack[],
