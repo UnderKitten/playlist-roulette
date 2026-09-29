@@ -1,5 +1,8 @@
 const SPOTIFY_BASE_URL = import.meta.env.VITE_SPOTIFY_BASE_URL;
 const MAX_RETRY_WAIT_MS = 60 * 1000;
+const MOVE_DELAY_MS = 100;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export interface SpotifyPlaylist {
   id: string;
@@ -159,7 +162,7 @@ class SpotifyService {
         return response;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      await sleep(waitTime);
     }
   }
 
@@ -196,30 +199,30 @@ class SpotifyService {
     tracks: SpotifyTrack[],
     onProgress?: (current: number, total: number) => void,
   ): Promise<SpotifyTrack[]> {
-    const originalUris = this.getTrackUris(tracks);
+    const order = [...tracks];
+    const totalSteps = order.length - 1;
+    let snapshotId: string | undefined;
 
-    const shuffledTracks = this.shuffleArray(tracks);
-    const trackUris = this.getTrackUris(shuffledTracks);
+    for (let i= 0; i< totalSteps; i++) {
+      const j = i + Math.floor(Math.random() * (order.length - i));
 
-    try {
-      await this.replacePlaylistTracks(playlistId, trackUris, onProgress);
-    } catch (shuffleError) {
-      try {
-        await this.replacePlaylistTracks(playlistId, originalUris);
-      } catch (restoreError) {
-        console.error("Restore failed:", restoreError);
-        throw new Error(
-          "Shuffle failed and the origin playlist could not be restored. Some songs maybe be missing",
-        );
+      if(j !== i){
+        try {
+          snapshotId = await this.moveTrack(playlistId, j, i, snapshotId);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : "unknown error";
+          throw new Error(
+            `Shuffle stopped after ${i} of ${totalSteps}, ${reason}`
+          );
+        }
+        const [moved] = order.splice(j, 1);
+        order.splice(i, 0, moved);
+
+        await sleep(MOVE_DELAY_MS);
       }
-      const reason =
-        shuffleError instanceof Error ? shuffleError.message : "Unknown error";
-      throw new Error(
-        `Shuffle failed: ${reason}. The original playlist has been restored.`,
-      );
+      onProgress?.(i+1,totalSteps);
     }
-
-    return shuffledTracks;
+    return order;
   }
 
   getTrackUris(tracks: SpotifyTrack[]): string[] {
