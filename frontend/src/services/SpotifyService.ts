@@ -1,4 +1,5 @@
 const SPOTIFY_BASE_URL = import.meta.env.VITE_SPOTIFY_BASE_URL;
+const MAX_RETRY_WAIT_MS = 60 * 1000;
 
 export interface SpotifyPlaylist {
   id: string;
@@ -138,16 +139,57 @@ class SpotifyService {
     }
   }
 
+  private async fetchWithRetry(
+    url: string,
+    init: RequestInit,
+    maxRetries: number = 5,
+  ): Promise<Response> {
+    for (let attempt = 0; ;attempt++) {
+      const response = await fetch(url, init);
+
+      const shouldRetry = response.status ===429 || response.status >= 500;
+      if(!shouldRetry || attempt >= maxRetries) {
+        return response;
+      }
+
+      const retryAfterSeconds = Number(response.headers.get("Retry-After"));
+      const waitTime = retryAfterSeconds ? retryAfterSeconds * 1000 : 1000 * Math.pow(2, attempt);
+
+      if(waitTime > MAX_RETRY_WAIT_MS) {
+        return response;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+  }
+
   async shuffleAndApplyPlaylist(
     playlistId: string,
     tracks: SpotifyTrack[],
-    onProgress?: (current: number, total: number) => void
+    onProgress?: (current: number, total: number) => void,
   ): Promise<SpotifyTrack[]> {
-    const shuffledTracks = this.shuffleArray(tracks);
+    const originalUris = this.getTrackUris(tracks);
 
+    const shuffledTracks = this.shuffleArray(tracks);
     const trackUris = this.getTrackUris(shuffledTracks);
 
-    await this.replacePlaylistTracks(playlistId, trackUris, onProgress);
+    try {
+      await this.replacePlaylistTracks(playlistId, trackUris, onProgress);
+    } catch (shuffleError) {
+      try {
+        await this.replacePlaylistTracks(playlistId, originalUris);
+      } catch (restoreError) {
+        console.error("Restore failed:", restoreError);
+        throw new Error(
+          "Shuffle failed and the origin playlist could not be restored. Some songs maybe be missing",
+        );
+      }
+      const reason =
+        shuffleError instanceof Error ? shuffleError.message : "Unknown error";
+      throw new Error(
+        `Shuffle failed: ${reason}. The original playlist has been restored.`,
+      );
+    }
 
     return shuffledTracks;
   }
