@@ -26,7 +26,7 @@ const TrackList = ({ tracks, isShuffled = false }: TrackListProps) => {
 
             {track.album.images[0] && (
               <img
-                src={track.album.images[0].url}
+                src={track.album.images.at(-1)!.url}
                 alt={track.album.name}
                 className="w-10 h-10 rounded-lg ml-4 shadow-md flex-shrink-0"
               />
