@@ -28,6 +28,7 @@ const TrackList = ({ tracks, isShuffled = false }: TrackListProps) => {
               <img
                 src={track.album.images.at(-1)!.url}
                 alt={track.album.name}
+                loading="lazy"
                 className="w-10 h-10 rounded-lg ml-4 shadow-md flex-shrink-0"
               />
             )}
